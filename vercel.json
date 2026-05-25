@@ -1,0 +1,27 @@
+{
+  "rewrites": [
+    {
+      "source": "/widget.js",
+      "destination": "/public/widget.js"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/widget.js",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
+  ]
+}
