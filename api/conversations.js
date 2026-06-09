@@ -11,6 +11,15 @@ export default async function handler(req, res) {
   const TOKEN = process.env.KV_REST_API_TOKEN;
   const H = { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
 
+  function parseSession(raw) {
+    if (!raw) return null;
+    try {
+      // Handle double-serialized JSON
+      const v = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return typeof v === 'string' ? JSON.parse(v) : v;
+    } catch { return null; }
+  }
+
   if (req.method === 'DELETE') {
     const { sessionId } = req.query;
     if (sessionId) {
@@ -20,19 +29,17 @@ export default async function handler(req, res) {
     }
   }
 
-  // GET: smembers sessions
   const smRes = await fetch(`${BASE}/smembers/sessions`, { headers: H });
   const smData = await smRes.json();
   const sessionIds = smData.result || [];
 
   if (!sessionIds.length) return res.status(200).json({ sessions: [], total: 0 });
 
-  // Fetch all sessions in parallel
   const sessions = await Promise.all(
     sessionIds.map(async (id) => {
       const r = await fetch(`${BASE}/get/session:${decodeURIComponent(id)}`, { headers: H });
       const d = await r.json();
-      return d.result ? JSON.parse(d.result) : null;
+      return parseSession(d.result);
     })
   );
 
