@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pet Corner - Chat Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f1117;color:#e2e8f0;min-height:100vh}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a1a2e,#16213e)}
+.login-box{background:#1e2130;border-radius:16px;padding:40px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.5);text-align:center}
+.login-box img{width:60px;margin-bottom:16px}
+.login-box h1{font-size:22px;margin-bottom:6px;color:#fff}
+.login-box p{color:#8892a4;font-size:13px;margin-bottom:28px}
+.login-box input{width:100%;padding:12px 16px;background:#252b3b;border:1.5px solid #2d3447;border-radius:10px;color:#e2e8f0;font-size:14px;outline:none;margin-bottom:14px}
+.login-box input:focus{border-color:#E85D26}
+.login-box button{width:100%;padding:12px;background:linear-gradient(135deg,#E85D26,#FF8C42);color:white;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer}
+.login-box button:hover{opacity:.9}
+#login-err{color:#f87171;font-size:12px;margin-top:8px;display:none}
+#app{display:none;flex-direction:column;min-height:100vh}
+header{background:#1e2130;border-bottom:1px solid #2d3447;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;color:#fff}
+.logo span{background:linear-gradient(135deg,#E85D26,#FF8C42);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header-right{display:flex;align-items:center;gap:14px}
+.status-badge{display:flex;align-items:center;gap:6px;font-size:12px;color:#8892a4}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.btn-logout{background:none;border:1px solid #2d3447;color:#8892a4;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px}
+.btn-logout:hover{border-color:#E85D26;color:#E85D26}
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px 24px;background:#161822;border-bottom:1px solid #2d3447}
+.stat{background:#1e2130;border-radius:12px;padding:16px 20px;border:1px solid #2d3447}
+.stat-val{font-size:28px;font-weight:700;color:#fff}
+.stat-label{font-size:12px;color:#8892a4;margin-top:4px}
+.stat-sub{font-size:11px;color:#E85D26;margin-top:2px}
+.main{display:grid;grid-template-columns:360px 1fr;flex:1;overflow:hidden;height:calc(100vh - 180px)}
+.sidebar{background:#1a1d2e;border-right:1px solid #2d3447;overflow-y:auto;display:flex;flex-direction:column}
+.sidebar-head{padding:14px 16px;border-bottom:1px solid #2d3447;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#1a1d2e;z-index:10}
+.sidebar-head h2{font-size:13px;font-weight:600;color:#8892a4;text-transform:uppercase;letter-spacing:.05em}
+.sidebar-search{padding:10px 12px;border-bottom:1px solid #2d3447}
+.sidebar-search input{width:100%;padding:8px 12px;background:#252b3b;border:1px solid #2d3447;border-radius:8px;color:#e2e8f0;font-size:13px;outline:none}
+.sidebar-search input:focus{border-color:#E85D26}
+.conv-list{flex:1}
+.conv-item{padding:14px 16px;border-bottom:1px solid #1e2130;cursor:pointer;transition:background .15s;position:relative}
+.conv-item:hover{background:#222538}
+.conv-item.active{background:#252b3b;border-left:3px solid #E85D26}
+.conv-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.conv-id{font-size:12px;font-weight:600;color:#fff}
+.conv-time{font-size:11px;color:#8892a4}
+.conv-preview{font-size:12px;color:#8892a4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+.conv-meta{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:500}
+.tag.lead{background:rgba(232,93,38,.15);color:#E85D26;border:1px solid rgba(232,93,38,.3)}
+.tag.msgs{background:rgba(99,102,241,.15);color:#818cf8;border:1px solid rgba(99,102,241,.3)}
+.tag.new{background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.3)}
+.tag.url{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.detail{background:#161822;overflow-y:auto;display:flex;flex-direction:column}
+.detail-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:#8892a4;gap:10px}
+.detail-empty svg{opacity:.2}
+.detail-head{padding:16px 20px;border-bottom:1px solid #2d3447;background:#1e2130;position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:flex-start}
+.detail-head-left h3{font-size:15px;font-weight:600;color:#fff}
+.detail-head-left p{font-size:12px;color:#8892a4;margin-top:3px}
+.detail-head-right{display:flex;gap:8px}
+.btn-del{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px}
+.btn-del:hover{background:rgba(239,68,68,.2)}
+.lead-card{margin:16px 20px;background:#1e2130;border-radius:10px;padding:14px 16px;border:1px solid rgba(232,93,38,.2)}
+.lead-card h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#E85D26;margin-bottom:10px;font-weight:600}
+.lead-row{display:flex;gap:20px;flex-wrap:wrap}
+.lead-field{display:flex;flex-direction:column;gap:3px}
+.lead-field label{font-size:10px;color:#8892a4;text-transform:uppercase;letter-spacing:.04em}
+.lead-field span{font-size:13px;color:#e2e8f0;font-weight:500}
+.messages{flex:1;padding:16px 20px;display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+.msg-wrap{display:flex;flex-direction:column;gap:3px}
+.msg-wrap.user{align-items:flex-end}
+.msg-wrap.bot{align-items:flex-start}
+.msg-bubble{padding:10px 14px;border-radius:16px;font-size:13.5px;line-height:1.55;max-width:78%;word-break:break-word}
+.msg-bubble.user{background:linear-gradient(135deg,#E85D26,#FF8C42);color:white;border-bottom-right-radius:4px}
+.msg-bubble.bot{background:#1e2130;color:#e2e8f0;border-bottom-left-radius:4px;border:1px solid #2d3447}
+.msg-time{font-size:10px;color:#8892a4;padding:0 4px}
+.no-conv{padding:40px 20px;text-align:center;color:#8892a4;font-size:13px}
+.refresh-indicator{font-size:11px;color:#8892a4;display:flex;align-items:center;gap:5px}
+.refresh-indicator .spin{animation:spin 1s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.filter-tabs{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid #2d3447}
+.ftab{padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid #2d3447;color:#8892a4;background:none}
+.ftab.active{background:#E85D26;color:white;border-color:#E85D26}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#8892a4;text-align:center;gap:8px}
+.empty-state svg{opacity:.15;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:48px;margin-bottom:12px">🐾</div>
+    <h1>Pet Corner Admin</h1>
+    <p>Chat Dashboard — Real-time conversations</p>
+    <input type="password" id="pwd-input" placeholder="Admin password" />
+    <button onclick="doLogin()">Sign In</button>
+    <div id="login-err">Incorrect password. Try again.</div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div class="logo">🐾 <span>Pet Corner</span> &nbsp;Chat Admin</div>
+    <div class="header-right">
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span id="last-refresh-txt">Live · refreshing every 5s</span>
+      </div>
+      <div class="refresh-indicator">
+        <svg class="spin" id="spin-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+      </div>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Total Conversations</div></div>
+    <div class="stat"><div class="stat-val" id="stat-leads">0</div><div class="stat-label">Leads Captured</div><div class="stat-sub" id="stat-leads-pct"></div></div>
+    <div class="stat"><div class="stat-val" id="stat-msgs">0</div><div class="stat-label">Total Messages</div></div>
+    <div class="stat"><div class="stat-val" id="stat-today">0</div><div class="stat-label">Active Today</div></div>
+  </div>
+
+  <div class="main">
+    <div class="sidebar">
+      <div class="sidebar-head">
+        <h2>Conversations</h2>
+      </div>
+      <div class="sidebar-search">
+        <input type="text" id="search-input" placeholder="Search by name, phone, message..." oninput="renderList()"/>
+      </div>
+      <div class="filter-tabs">
+        <button class="ftab active" onclick="setFilter('all',this)">All</button>
+        <button class="ftab" onclick="setFilter('leads',this)">With Lead</button>
+        <button class="ftab" onclick="setFilter('today',this)">Today</button>
+      </div>
+      <div class="conv-list" id="conv-list"></div>
+    </div>
+    <div class="detail" id="detail">
+      <div class="detail-empty">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <p>Select a conversation to view details</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var PASSWORD = '';
+var sessions = [];
+var selectedId = null;
+var filter = 'all';
+var refreshTimer = null;
+
+function doLogin() {
+  var pwd = document.getElementById('pwd-input').value.trim();
+  if (!pwd) return;
+  PASSWORD = pwd;
+  fetchData().then(function(ok) {
+    if (ok) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      startRefresh();
+    } else {
+      document.getElementById('login-err').style.display = 'block';
+      PASSWORD = '';
+    }
+  });
+}
+
+document.getElementById('pwd-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doLogin();
+});
+
+function logout() {
+  clearInterval(refreshTimer);
+  PASSWORD = '';
+  sessions = [];
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('pwd-input').value = '';
+}
+
+async function fetchData() {
+  var spin = document.getElementById('spin-icon');
+  spin.style.display = 'block';
+  try {
+    var r = await fetch('/api/conversations', {
+      headers: { 'x-admin-password': PASSWORD }
+    });
+    if (r.status === 401) { spin.style.display='none'; return false; }
+    var d = await r.json();
+    sessions = d.sessions || [];
+    updateStats();
+    renderList();
+    if (selectedId) showDetail(selectedId);
+    var now = new Date();
+    document.getElementById('last-refresh-txt').textContent = 'Live · ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+    spin.style.display = 'none';
+    return true;
+  } catch(e) {
+    spin.style.display = 'none';
+    return false;
+  }
+}
+
+function startRefresh() {
+  fetchData();
+  refreshTimer = setInterval(fetchData, 5000);
+}
+
+function setFilter(f, el) {
+  filter = f;
+  document.querySelectorAll('.ftab').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+  renderList();
+}
+
+function updateStats() {
+  var withLead = sessions.filter(function(s){ return s.lead && (s.lead.name || s.lead.phone); });
+  var totalMsgs = sessions.reduce(function(acc,s){ return acc + (s.messages ? s.messages.length : 0); }, 0);
+  var today = new Date(); today.setHours(0,0,0,0);
+  var activeToday = sessions.filter(function(s){ return s.lastActivity >= today.getTime(); });
+  document.getElementById('stat-total').textContent = sessions.length;
+  document.getElementById('stat-leads').textContent = withLead.length;
+  document.getElementById('stat-leads-pct').textContent = sessions.length ? Math.round(withLead.length/sessions.length*100)+'% capture rate' : '';
+  document.getElementById('stat-msgs').textContent = totalMsgs;
+  document.getElementById('stat-today').textContent = activeToday.length;
+}
+
+function getFiltered() {
+  var q = (document.getElementById('search-input').value || '').toLowerCase();
+  var today = new Date(); today.setHours(0,0,0,0);
+  return sessions.filter(function(s) {
+    if (filter === 'leads' && !(s.lead && (s.lead.name || s.lead.phone))) return false;
+    if (filter === 'today' && s.lastActivity < today.getTime()) return false;
+    if (!q) return true;
+    var text = [
+      s.sessionId,
+      s.lead && s.lead.name || '',
+      s.lead && s.lead.phone || '',
+      s.pageUrl || '',
+      (s.messages || []).map(function(m){ return m.content; }).join(' ')
+    ].join(' ').toLowerCase();
+    return text.indexOf(q) !== -1;
+  });
+}
+
+function timeAgo(ts) {
+  var diff = Date.now() - ts;
+  var mins = Math.floor(diff/60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  var hrs = Math.floor(mins/60);
+  if (hrs < 24) return hrs + 'h ago';
+  return Math.floor(hrs/24) + 'd ago';
+}
+
+function formatTime(ts) {
+  var d = new Date(ts);
+  return d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
+function renderList() {
+  var list = document.getElementById('conv-list');
+  var filtered = getFiltered();
+  if (!filtered.length) {
+    list.innerHTML = '<div class="no-conv">No conversations found</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(function(s) {
+    var lastMsg = s.messages && s.messages.length ? s.messages[s.messages.length-1] : null;
+    var preview = lastMsg ? lastMsg.content.substring(0,60) : 'No messages yet';
+    var isNew = Date.now() - s.lastActivity < 300000;
+    var hasLead = s.lead && (s.lead.name || s.lead.phone);
+    var displayName = (hasLead && s.lead.name) ? s.lead.name : ('User #' + s.sessionId.substring(0,8));
+    return '<div class="conv-item' + (s.sessionId === selectedId ? ' active' : '') + '" onclick="showDetail(\'' + s.sessionId + '\')">'
+      + '<div class="conv-top"><span class="conv-id">' + displayName + '</span><span class="conv-time">' + timeAgo(s.lastActivity) + '</span></div>'
+      + '<div class="conv-preview">' + preview + '</div>'
+      + '<div class="conv-meta">'
+      + '<span class="tag msgs">💬 ' + (s.messages ? s.messages.length : 0) + ' msgs</span>'
+      + (hasLead ? '<span class="tag lead">👤 Lead</span>' : '')
+      + (isNew ? '<span class="tag new">● Live</span>' : '')
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function showDetail(id) {
+  selectedId = id;
+  renderList();
+  var s = sessions.find(function(x){ return x.sessionId === id; });
+  if (!s) return;
+  var detail = document.getElementById('detail');
+  var hasLead = s.lead && (s.lead.name || s.lead.phone);
+  var started = new Date(s.startedAt);
+  var startedStr = started.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) + ' ' + formatTime(s.startedAt);
+
+  var leadHtml = '';
+  if (hasLead) {
+    leadHtml = '<div class="lead-card"><h4>Lead Information</h4><div class="lead-row">'
+      + (s.lead.name ? '<div class="lead-field"><label>Name</label><span>' + s.lead.name + '</span></div>' : '')
+      + (s.lead.phone ? '<div class="lead-field"><label>Phone</label><span>' + s.lead.phone + '</span></div>' : '')
+      + '</div></div>';
+  }
+
+  var msgsHtml = (s.messages || []).map(function(m) {
+    var role = m.role === 'user' ? 'user' : 'bot';
+    return '<div class="msg-wrap ' + role + '">'
+      + '<div class="msg-bubble ' + role + '">' + m.content + '</div>'
+      + '</div>';
+  }).join('');
+
+  if (!msgsHtml) msgsHtml = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><p>No messages yet</p></div>';
+
+  detail.innerHTML = '<div class="detail-head">'
+    + '<div class="detail-head-left"><h3>' + (hasLead && s.lead.name ? s.lead.name : 'Anonymous User') + '</h3>'
+    + '<p>Started ' + startedStr + (s.pageUrl ? ' &nbsp;·&nbsp; ' + s.pageUrl : '') + '</p></div>'
+    + '<div class="detail-head-right">'
+    + '<button class="btn-del" onclick="deleteSession(\'' + id + '\')">🗑 Delete</button>'
+    + '</div></div>'
+    + leadHtml
+    + '<div class="messages">' + msgsHtml + '</div>';
+
+  var msgEl = detail.querySelector('.messages');
+  if (msgEl) msgEl.scrollTop = msgEl.scrollHeight;
+}
+
+async function deleteSession(id) {
+  if (!confirm('Delete this conversation? This cannot be undone.')) return;
+  await fetch('/api/conversations?sessionId=' + id, {
+    method: 'DELETE',
+    headers: { 'x-admin-password': PASSWORD }
+  });
+  if (selectedId === id) {
+    selectedId = null;
+    document.getElementById('detail').innerHTML = '<div class="detail-empty"><p>Conversation deleted.</p></div>';
+  }
+  fetchData();
+}
+</script>
+</body>
+</html>
