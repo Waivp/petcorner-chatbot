@@ -1,26 +1,23 @@
 {
   "rewrites": [
-    {
-      "source": "/widget.js",
-      "destination": "/public/widget.js"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    }
+    { "source": "/widget.js", "destination": "/public/widget.js" },
+    { "source": "/admin", "destination": "/public/admin.html" },
+    { "source": "/admin.html", "destination": "/public/admin.html" },
+    { "source": "/api/(.*)", "destination": "/api/$1" }
   ],
   "headers": [
     {
       "source": "/widget.js",
       "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/javascript"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600"
-        }
+        { "key": "Content-Type", "value": "application/javascript" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/admin",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "X-Robots-Tag", "value": "noindex" }
       ]
     }
   ]
