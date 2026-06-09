@@ -9,54 +9,41 @@ export default async function handler(req, res) {
     const { sessionId, messages, lead, event, pageUrl } = req.body;
     if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
-    const KV_URL = process.env.KV_REST_API_URL;
-    const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+    const BASE = process.env.KV_REST_API_URL;
+    const TOKEN = process.env.KV_REST_API_TOKEN;
+    const H = { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
 
-    async function kvSet(key, value) {
-      await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: JSON.stringify(value) })
-      });
-    }
-
-    async function kvGet(key) {
-      const r = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-      });
-      const d = await r.json();
-      return d.result ? JSON.parse(d.result) : null;
-    }
-
-    async function kvSAdd(key, member) {
-      await fetch(`${KV_URL}/sadd/${encodeURIComponent(key)}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify([member])
-      });
-    }
-
+    // Get existing session
+    const getRes = await fetch(`${BASE}/get/session:${sessionId}`, { headers: H });
+    const getData = await getRes.json();
     const now = Date.now();
-    const existing = await kvGet(`session:${sessionId}`) || {
-      sessionId,
-      startedAt: now,
-      pageUrl: pageUrl || '',
-      messages: [],
-      lead: null,
-      lastActivity: now
+
+    let session = getData.result ? JSON.parse(getData.result) : {
+      sessionId, startedAt: now, pageUrl: pageUrl || '', messages: [], lead: null, lastActivity: now
     };
 
-    if (messages) existing.messages = messages;
-    if (lead) existing.lead = lead;
-    if (event) existing.lastEvent = event;
-    existing.lastActivity = now;
+    if (messages) session.messages = messages;
+    if (lead) session.lead = lead;
+    if (event) session.lastEvent = event;
+    if (pageUrl) session.pageUrl = pageUrl;
+    session.lastActivity = now;
 
-    await kvSet(`session:${sessionId}`, existing);
-    await kvSAdd('sessions', sessionId);
+    // Save session data: SET session:id <json>
+    await fetch(`${BASE}/set/session:${sessionId}`, {
+      method: 'POST',
+      headers: H,
+      body: JSON.stringify(JSON.stringify(session))
+    });
+
+    // Add to sessions index: SADD sessions <sessionId>
+    await fetch(`${BASE}/sadd/sessions/${encodeURIComponent(sessionId)}`, {
+      method: 'POST',
+      headers: H
+    });
 
     return res.status(200).json({ ok: true });
   } catch (err) {
-    console.error(err);
+    console.error('save-conversation error:', err);
     return res.status(500).json({ error: err.message });
   }
 }
