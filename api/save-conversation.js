@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { sessionId, messages, lead, event, pageUrl } = req.body;
+    const { sessionId, messages, lead, event, pageUrl, rating } = req.body;
     if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
     const BASE = process.env.KV_REST_API_URL;
@@ -18,13 +18,29 @@ export default async function handler(req, res) {
     const getData = await getRes.json();
     const now = Date.now();
 
-    let session = getData.result ? JSON.parse(getData.result) : {
-      sessionId, startedAt: now, pageUrl: pageUrl || '', messages: [], lead: null, lastActivity: now
-    };
+    let session = null;
+    if (getData.result) {
+      try {
+        const v = JSON.parse(getData.result);
+        session = typeof v === 'string' ? JSON.parse(v) : v;
+      } catch { session = null; }
+    }
+    if (!session) {
+      session = { sessionId, startedAt: now, pageUrl: pageUrl || '', messages: [], lead: null, lastActivity: now };
+    }
 
-    if (messages) session.messages = messages;
+    // FIX: never overwrite saved messages with a shorter/empty transcript
+    const existingLen = Array.isArray(session.messages) ? session.messages.length : 0;
+    if (Array.isArray(messages) && messages.length > existingLen) {
+      session.messages = messages;
+    }
+
     if (lead) session.lead = lead;
     if (event) session.lastEvent = event;
+    if (rating) {
+      session.ratings = session.ratings || [];
+      session.ratings.push(Object.assign({}, rating, { at: now }));
+    }
     if (pageUrl) session.pageUrl = pageUrl;
     session.lastActivity = now;
 
@@ -41,7 +57,8 @@ export default async function handler(req, res) {
       headers: H
     });
 
-    return res.status(200).json({ ok: true });
+    // Return saved transcript so the widget can restore it
+    return res.status(200).json({ ok: true, messages: session.messages });
   } catch (err) {
     console.error('save-conversation error:', err);
     return res.status(500).json({ error: err.message });
