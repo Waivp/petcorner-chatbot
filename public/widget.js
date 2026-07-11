@@ -27,9 +27,13 @@ var PAGE_TITLE=document.title||'';
 var PAGE_URL=window.location.href||'';
 
 var hist=[],isOpen=false,leadCaptured=false,proactiveDone=false,userMsgCount=0,ratingGiven={};
+try{hist=JSON.parse(sessionStorage.getItem('pc_hist')||'[]');}catch(e){hist=[];}
+userMsgCount=hist.filter(function(m){return m.role==='user';}).length;
 
 function saveConv(extra){
-var p={sessionId:SESSION_ID,messages:hist,pageUrl:PAGE_URL,pageTitle:PAGE_TITLE};
+try{sessionStorage.setItem('pc_hist',JSON.stringify(hist));}catch(e){}
+var p={sessionId:SESSION_ID,pageUrl:PAGE_URL,pageTitle:PAGE_TITLE};
+if(hist.length)p.messages=hist;
 if(extra)Object.assign(p,extra);
 fetch(CHAT_URL+'/api/save-conversation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).catch(function(){});
 }
@@ -222,6 +226,11 @@ inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.pr
 
 function startSession(){
 saveConv({event:'session_started'});
+if(hist.length){
+hist.forEach(function(m,i){addMsg(m.content,m.role==='user'?'user':'bot',false,m.role==='assistant'?i:undefined);});
+showPrompts();
+return;
+}
 var delay=0;
 OPENING_MSGS.forEach(function(m,i){
 setTimeout(function(){
